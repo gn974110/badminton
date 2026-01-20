@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
 import { Player, Court } from '../types';
-import { Trash2, Wand2, Edit3, Loader2, User, X as XIcon, Play, Square, Activity, Swords, Flame, Plus } from 'lucide-react';
+import { Trash2, Edit3, User, X as XIcon, Play, Square, Activity, Swords, Flame, Plus } from 'lucide-react';
 import { cn } from '../utils';
-import { generateTeamNameAndStrategy } from '../services/geminiService';
 import { LevelBadge } from './LevelBadge';
 
 interface CourtCardProps {
@@ -35,23 +34,11 @@ export const CourtCard: React.FC<CourtCardProps> = ({
   onDropPlayer,
   onToggleStatus
 }) => {
-  const [aiData, setAiData] = useState<{ name: string; strategy: string } | null>(null);
-  const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [dragOverSlotIndex, setDragOverSlotIndex] = useState<number | null>(null);
 
   const isPlaying = court.status === 'playing';
   const filledCount = players.filter(Boolean).length;
   const canStart = filledCount === 4;
-
-  const handleAiGen = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (filledCount === 0) return;
-    setIsLoadingAi(true);
-    const playerNames = players.filter(p => p !== null).map(p => p!.name);
-    const result = await generateTeamNameAndStrategy(playerNames);
-    setAiData(result);
-    setIsLoadingAi(false);
-  };
 
   const isSelected = (id: string) => selectedPlayerId === id;
 
@@ -256,45 +243,22 @@ export const CourtCard: React.FC<CourtCardProps> = ({
         </div>
         
         <div className="flex items-center gap-0.5 sm:gap-1">
-            <button 
+            <button
                 type="button"
-                onClick={handleAiGen}
-                disabled={isLoadingAi || filledCount === 0}
-                className={cn(
-                    "p-2 sm:p-1.5 rounded-full transition-colors flex items-center justify-center",
-                    aiData ? "text-indigo-600 bg-indigo-50" : "text-slate-400 hover:text-indigo-500 hover:bg-slate-50"
-                )}
-            >
-                {isLoadingAi ? <Loader2 size={18} className="animate-spin"/> : <Wand2 size={18} className="sm:w-4 sm:h-4" />}
-            </button>
-            <button 
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onEditCourt(court.id); }} 
+                onClick={(e) => { e.stopPropagation(); onEditCourt(court.id); }}
                 className="p-2 sm:p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
             >
                 <Edit3 size={18} className="sm:w-4 sm:h-4" />
             </button>
-            <button 
+            <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onDeleteCourt(court.id); }} 
+                onClick={(e) => { e.stopPropagation(); onDeleteCourt(court.id); }}
                 className="p-2 sm:p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
             >
                 <Trash2 size={18} className="sm:w-4 sm:h-4" />
             </button>
         </div>
       </div>
-
-      {/* AI Overlay */}
-      {aiData && (
-          <div className="bg-indigo-50 px-4 py-2 border-b border-indigo-100 flex justify-between items-start animate-in slide-in-from-top relative z-20">
-            <div>
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">AI 教練</p>
-                <p className="font-bold text-indigo-900 text-sm">{aiData.name}</p>
-                <p className="text-xs text-indigo-700 mt-0.5 italic">"{aiData.strategy}"</p>
-            </div>
-            <button onClick={() => setAiData(null)} className="text-indigo-300 hover:text-indigo-600"><XIcon size={14}/></button>
-          </div>
-      )}
 
       {/* Court Visual Area */}
       <div 
