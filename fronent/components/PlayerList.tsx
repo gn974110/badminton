@@ -4,6 +4,7 @@ import { Player, Court } from '../types';
 import { Plus, Search, UserX, Check, Trash2, User, Edit3, Swords, Power, Activity, Pause } from 'lucide-react';
 import { cn } from '../utils';
 import { LevelBadge } from './LevelBadge';
+import { validatePlayerName } from '../utils/validation';
 
 interface PlayerListProps {
   players: Player[];
@@ -35,13 +36,20 @@ export const PlayerList: React.FC<PlayerListProps> = ({
   const [newGender, setNewGender] = useState<'M' | 'F'>('M');
   const [newLevel, setNewLevel] = useState<number>(3);
   const [filter, setFilter] = useState('');
+  const [addError, setAddError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPlayerName.trim()) {
-      onAddPlayer(newPlayerName.trim(), newGender, newLevel);
-      setNewPlayerName('');
+    setAddError(null);
+
+    const validation = validatePlayerName(newPlayerName, { items: players });
+    if (!validation.isValid) {
+      setAddError(validation.error || '驗證失敗');
+      return;
     }
+
+    onAddPlayer(newPlayerName.trim(), newGender, newLevel);
+    setNewPlayerName('');
   };
 
   const handleDragStart = (e: React.DragEvent, player: Player) => {
@@ -146,8 +154,12 @@ export const PlayerList: React.FC<PlayerListProps> = ({
                     </div>
                 </div>
 
-                <button 
-                    type="submit" 
+                {addError && (
+                    <p className="text-xs text-red-600 font-medium">{addError}</p>
+                )}
+
+                <button
+                    type="submit"
                     disabled={!newPlayerName.trim()}
                     className="w-full py-2 bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg disabled:opacity-50 hover:bg-emerald-700"
                 >

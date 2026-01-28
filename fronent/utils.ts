@@ -20,21 +20,37 @@ export function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
+/**
+ * Optimized player stats calculation - O(n + m) single pass
+ * Instead of iterating all rounds for each player, we:
+ * 1. Build a name->id lookup map
+ * 2. Single pass through all matches to count plays
+ */
 export function getPlayerStats(players: Player[], history: RoundRecord[]): Record<string, number> {
+  // Initialize stats for all players
   const stats: Record<string, number> = {};
-  
   players.forEach(p => {
-    let playedCount = 0;
-    history.forEach(round => {
-      round.matches.forEach(match => {
-        if (match.playerNames.includes(p.name)) {
-          playedCount++;
+    stats[p.id] = 0;
+  });
+
+  // Build name -> id lookup for O(1) access
+  const nameToId = new Map<string, string>();
+  players.forEach(p => {
+    nameToId.set(p.name, p.id);
+  });
+
+  // Single pass through history
+  history.forEach(round => {
+    round.matches.forEach(match => {
+      match.playerNames.forEach(name => {
+        const playerId = nameToId.get(name);
+        if (playerId && stats[playerId] !== undefined) {
+          stats[playerId]++;
         }
       });
     });
-    stats[p.id] = playedCount;
   });
-  
+
   return stats;
 }
 
@@ -73,27 +89,44 @@ export function smartAllocation(
   // 2. Filter Available Active Players (Active AND Not currently playing)
   const availablePlayers = allPlayers.filter(p => p.isActive && !playingPlayerIds.has(p.id));
   
-  // 3. Calculate Stats for AVAILABLE players
-  const playerStats = availablePlayers.map(p => {
-    let playedCount = 0;
-    let lastRoundIndex = -1;
+  // 3. Calculate Stats for AVAILABLE players (optimized O(n+m) single pass)
+  // Build lookup map for available players
+  const availableNameToPlayer = new Map<string, Player>();
+  availablePlayers.forEach(p => {
+    availableNameToPlayer.set(p.name, p);
+  });
 
-    history.forEach((round, rIdx) => {
-      round.matches.forEach(match => {
-        if (match.playerNames.includes(p.name)) {
-          playedCount++;
-          lastRoundIndex = rIdx;
+  // Pre-compute stats in single pass through history
+  const statsMap = new Map<string, { playedCount: number; lastRoundIndex: number }>();
+  availablePlayers.forEach(p => {
+    statsMap.set(p.id, { playedCount: 0, lastRoundIndex: -1 });
+  });
+
+  history.forEach((round, rIdx) => {
+    round.matches.forEach(match => {
+      match.playerNames.forEach(name => {
+        const player = availableNameToPlayer.get(name);
+        if (player) {
+          const stat = statsMap.get(player.id);
+          if (stat) {
+            stat.playedCount++;
+            stat.lastRoundIndex = rIdx;
+          }
         }
       });
     });
+  });
 
+  // Build player stats array
+  const playerStats = availablePlayers.map(p => {
+    const stat = statsMap.get(p.id) || { playedCount: 0, lastRoundIndex: -1 };
     // Calculate "Rest Score": Higher means rested longer
     // If never played, treated as rested for infinite rounds
-    const restRounds = lastRoundIndex === -1 ? 999 : (history.length - lastRoundIndex);
+    const restRounds = stat.lastRoundIndex === -1 ? 999 : (history.length - stat.lastRoundIndex);
 
     return {
       player: p,
-      playedCount,
+      playedCount: stat.playedCount,
       restRounds,
       // Random noise to break ties
       random: Math.random()
