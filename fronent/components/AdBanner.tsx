@@ -2,9 +2,11 @@
 import React, { useEffect } from 'react';
 import { cn } from '../utils';
 
+// 你的 AdSense Publisher ID
+const AD_CLIENT = 'ca-pub-7916680908337610';
+
 interface AdBannerProps {
-  client?: string; // data-ad-client (e.g., ca-pub-xxxxxxxx)
-  slot?: string;   // data-ad-slot
+  slot?: string;   // data-ad-slot (從 AdSense 後台取得)
   format?: string; // auto
   responsive?: string; // true
   className?: string;
@@ -12,13 +14,13 @@ interface AdBannerProps {
 }
 
 export const AdBanner: React.FC<AdBannerProps> = ({
-  client,
   slot,
   format = 'auto',
   responsive = 'true',
   className,
   testMode = false
 }) => {
+  const client = AD_CLIENT;
   useEffect(() => {
     if (client && slot && !testMode) {
       try {
